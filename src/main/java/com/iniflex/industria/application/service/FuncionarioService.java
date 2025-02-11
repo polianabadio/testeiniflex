@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.Collator;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,8 +26,12 @@ public class FuncionarioService {
     }
 
     public void removerPorNome(String nome) {
-        funcionarioRepository.deleteByNome(nome);
+        Funcionario funcionario = funcionarioRepository.findByNome(nome)
+            .orElseThrow(() -> new RuntimeException("Funcionário não encontrado: " + nome));
+    
+        funcionarioRepository.delete(funcionario);
     }
+    
 
     public void aumentarSalario(BigDecimal percentual) {
         List<Funcionario> funcionarios = funcionarioRepository.findAll();
@@ -54,23 +59,26 @@ public class FuncionarioService {
                 .orElseThrow();
     }
 
-    public List<Funcionario> listarOrdenadosPorNome() {
-    Collator collator = Collator.getInstance(new Locale("pt", "BR"));
-    collator.setStrength(Collator.PRIMARY);
+        public List<Funcionario> listarOrdenadosPorNome() {
+        Collator collator = Collator.getInstance(new Locale("pt", "BR"));
+        collator.setStrength(Collator.PRIMARY);
 
-    return funcionarioRepository.findAll()
-        .stream()
-        .sorted((f1, f2) -> collator.compare(f1.getNome(), f2.getNome()))
-        .toList();
-}
+        return funcionarioRepository.findAll()
+            .stream()
+            .sorted((f1, f2) -> collator.compare(f1.getNome(), f2.getNome()))
+            .toList();
+    }
     
+
 
     public BigDecimal calcularTotalSalarios() {
         return funcionarioRepository.findAll()
                 .stream()
                 .map(Funcionario::getSalario)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP); 
+}
+
 
     public Map<String, Double> calcularSalariosMinimos(double salarioMinimo) {
         return funcionarioRepository.findAll()
